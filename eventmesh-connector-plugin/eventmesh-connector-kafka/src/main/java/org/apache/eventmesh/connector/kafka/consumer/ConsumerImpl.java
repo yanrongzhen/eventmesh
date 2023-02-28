@@ -56,13 +56,13 @@ public class ConsumerImpl {
 
         // Other config props
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.getProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG));
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CloudEventDeserializer.class);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, new StringDeserializer());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, new CloudEventDeserializer());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, properties.getProperty(ConsumerConfig.GROUP_ID_CONFIG));
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
         this.properties = props;
-        this.kafkaConsumer = new KafkaConsumer<String, CloudEvent>(props);
+        this.kafkaConsumer = new KafkaConsumer<>(props);
         kafkaConsumerRunner = new KafkaConsumerRunner(this.kafkaConsumer);
         executorService = Executors.newFixedThreadPool(10);
         topicsSet = new HashSet<>();
@@ -114,7 +114,7 @@ public class ConsumerImpl {
 
     public synchronized void unsubscribe(String topic) {
         try {
-            // Kafka will unsubscribe *all* topic if calling unsubscribe, so we
+            // Kafka will unsubscribe *all* topic if calling unsubscribe
             this.kafkaConsumer.unsubscribe();
             topicsSet.remove(topic);
             List<String> topics = new ArrayList<>(topicsSet);
