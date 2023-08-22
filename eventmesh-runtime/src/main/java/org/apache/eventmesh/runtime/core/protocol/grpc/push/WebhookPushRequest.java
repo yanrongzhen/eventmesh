@@ -164,7 +164,7 @@ public class WebhookPushRequest extends AbstractPushRequest {
         return "asyncPushRequest={"
             + "bizSeqNo=" + EventMeshCloudEventUtils.getSeqNum(eventMeshCloudEvent)
             + ",startIdx=" + startIdx
-            + ",retryTimes=" + retryTimes
+            + ",retryTimes=" + getRetryTimes()
             + ",uniqueId=" + EventMeshCloudEventUtils.getUniqueId(eventMeshCloudEvent)
             + ",executeTime="
             + DateFormatUtils.format(executeTime, Constants.DATE_FORMAT_INCLUDE_MILLISECONDS)
@@ -255,7 +255,7 @@ public class WebhookPushRequest extends AbstractPushRequest {
     private List<String> getStringList(List<String> stringList) {
         switch (subscriptionMode) {
             case CLUSTERING:
-                return Collections.singletonList(stringList.get((startIdx + retryTimes) % stringList.size()));
+                return Collections.singletonList(stringList.get((startIdx + (int) getRetryTimes()) % stringList.size()));
             case BROADCASTING:
                 return stringList;
             default:

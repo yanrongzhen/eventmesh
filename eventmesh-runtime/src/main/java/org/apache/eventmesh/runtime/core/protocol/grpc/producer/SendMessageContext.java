@@ -22,7 +22,9 @@ import org.apache.eventmesh.api.SendResult;
 import org.apache.eventmesh.api.exception.OnExceptionContext;
 import org.apache.eventmesh.common.Constants;
 import org.apache.eventmesh.runtime.boot.EventMeshGrpcServer;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.StopStrategies;
+import org.apache.eventmesh.runtime.core.retry.StopStrategy;
 
 import org.apache.commons.lang3.time.DateFormatUtils;
 
@@ -90,7 +92,7 @@ public class SendMessageContext extends RetryContext {
         StringBuilder sb = new StringBuilder();
         sb.append("sendMessageContext={")
             .append("bizSeqNo=").append(bizSeqNo)
-            .append(",retryTimes=").append(retryTimes)
+            .append(",retryTimes=").append(getAttempt().getAttemptNumber())
             .append(",producer=")
             .append(eventMeshProducer != null ? eventMeshProducer : null)
             .append(",executeTime=")
@@ -101,18 +103,16 @@ public class SendMessageContext extends RetryContext {
     }
 
     @Override
+    public StopStrategy getStopStrategy() {
+        return StopStrategies.stopAfterAttempt(1);
+    }
+
+    @Override
     public void retry() throws Exception {
         if (eventMeshProducer == null) {
             logger.error("Exception happends during retry. EventMeshProducer is null.");
             return;
         }
-
-        if (retryTimes > 0) { //retry once
-            logger.error("Exception happends during retry. The retryTimes > 0.");
-            return;
-        }
-
-        retryTimes++;
         eventMeshProducer.send(this, new SendCallback() {
 
             @Override

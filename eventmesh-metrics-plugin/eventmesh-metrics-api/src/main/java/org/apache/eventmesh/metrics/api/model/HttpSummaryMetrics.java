@@ -19,6 +19,7 @@ package org.apache.eventmesh.metrics.api.model;
 
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,14 +107,14 @@ public class HttpSummaryMetrics implements Metric {
 
     private final ThreadPoolExecutor pushMsgExecutor;
 
-    private final DelayQueue<?> httpFailedQueue;
+    private final Queue<?> httpFailedQueue;
 
     private Lock lock = new ReentrantLock();
 
     public HttpSummaryMetrics(final ThreadPoolExecutor batchMsgExecutor,
         final ThreadPoolExecutor sendMsgExecutor,
         final ThreadPoolExecutor pushMsgExecutor,
-        final DelayQueue<?> httpFailedQueue) {
+        final Queue<?> httpFailedQueue) {
         this.batchMsgExecutor = batchMsgExecutor;
         this.sendMsgExecutor = sendMsgExecutor;
         this.pushMsgExecutor = pushMsgExecutor;

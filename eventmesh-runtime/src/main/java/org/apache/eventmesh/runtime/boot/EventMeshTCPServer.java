@@ -21,6 +21,8 @@ import org.apache.eventmesh.api.registry.dto.EventMeshRegisterInfo;
 import org.apache.eventmesh.api.registry.dto.EventMeshUnRegisterInfo;
 import org.apache.eventmesh.common.EventMeshThreadFactory;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.config.CommonConfiguration;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.exception.EventMeshException;
 import org.apache.eventmesh.common.protocol.tcp.codec.Codec;
 import org.apache.eventmesh.common.utils.ConfigurationContextUtil;
@@ -37,7 +39,7 @@ import org.apache.eventmesh.runtime.core.protocol.tcp.client.EventMeshTcpMessage
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.group.ClientSessionGroupMapping;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.rebalance.EventMeshRebalanceImpl;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.rebalance.EventMeshRebalanceService;
-import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.retry.EventMeshTcpRetryer;
+import org.apache.eventmesh.runtime.core.retry.RetryTaskManager;
 import org.apache.eventmesh.runtime.metrics.tcp.EventMeshTcpMonitor;
 import org.apache.eventmesh.runtime.registry.Registry;
 import org.apache.eventmesh.webhook.admin.AdminWebHookConfigOperationManager;
@@ -74,7 +76,7 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
 
     private ClientSessionGroupMapping clientSessionGroupMapping;
 
-    private transient EventMeshTcpRetryer eventMeshTcpRetryer;
+    private transient RetryTaskManager retryTaskManager;
 
     private transient EventMeshTcpMonitor eventMeshTcpMonitor;
 
@@ -221,8 +223,8 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
         clientSessionGroupMapping = new ClientSessionGroupMapping(this);
         clientSessionGroupMapping.init();
 
-        eventMeshTcpRetryer = new EventMeshTcpRetryer(this);
-        eventMeshTcpRetryer.init();
+        retryTaskManager = new RetryTaskManager(this);
+        retryTaskManager.init();
 
         // The MetricsRegistry is singleton, so we can use factory method to get.
         final List<MetricsRegistry> metricsRegistries = Lists.newArrayList();
@@ -250,7 +252,7 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
 
         clientSessionGroupMapping.start();
 
-        eventMeshTcpRetryer.start();
+        retryTaskManager.start();
 
         eventMeshTcpMonitor.start();
 
@@ -262,6 +264,16 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
         if (log.isInfoEnabled()) {
             log.info("--------------------------EventMeshTCPServer Started");
         }
+    }
+
+    @Override
+    public CommonConfiguration getConfiguration() {
+        return eventMeshTCPConfiguration;
+    }
+
+    @Override
+    public ProtocolType getProtocolType() {
+        return ProtocolType.TCP;
     }
 
     @Override
@@ -290,7 +302,7 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
             log.info("shutdown workerGroup");
         }
 
-        eventMeshTcpRetryer.shutdown();
+        retryTaskManager.shutdown();
 
         eventMeshTcpMonitor.shutdown();
 
@@ -382,8 +394,8 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
         return clientSessionGroupMapping;
     }
 
-    public EventMeshTcpRetryer getEventMeshTcpRetryer() {
-        return eventMeshTcpRetryer;
+    public RetryTaskManager getRetryTaskManager() {
+        return retryTaskManager;
     }
 
     public EventMeshTcpMonitor getEventMeshTcpMonitor() {

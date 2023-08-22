@@ -36,6 +36,8 @@ import org.apache.eventmesh.runtime.constants.EventMeshConstants;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.send.EventMeshTcpSendResult;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.send.EventMeshTcpSendStatus;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.send.UpStreamMsgContext;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.WaitStrategies;
 import org.apache.eventmesh.runtime.trace.AttributeKeys;
 import org.apache.eventmesh.runtime.trace.SpanKey;
 import org.apache.eventmesh.runtime.util.RemotingHelper;
@@ -246,11 +248,11 @@ public class MessageTransferTask extends AbstractTask {
                 session.getSender().getUpstreamBuff().release();
 
                 // retry
-                UpStreamMsgContext upStreamMsgContext = new UpStreamMsgContext(
-                    session, event, pkg.getHeader(), startTime, taskExecuteTime);
-                upStreamMsgContext.delay(10000);
+                RetryContext upStreamMsgContext = new UpStreamMsgContext(
+                    session, event, pkg.getHeader(), startTime, taskExecuteTime)
+                    .withWaitStrategy(WaitStrategies.fixedWait(10000, TimeUnit.MILLISECONDS));
                 Objects.requireNonNull(
-                        session.getClientGroupWrapper().get()).getEventMeshTcpRetryer()
+                        session.getClientGroupWrapper().get()).getRetryTaskManager()
                     .pushRetry(upStreamMsgContext);
 
                 session.getSender().getFailMsgCount().incrementAndGet();

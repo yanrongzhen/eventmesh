@@ -29,6 +29,7 @@ import org.apache.eventmesh.protocol.api.ProtocolAdaptor;
 import org.apache.eventmesh.protocol.api.ProtocolPluginFactory;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.Session;
+import org.apache.eventmesh.runtime.core.retry.WaitStrategies;
 import org.apache.eventmesh.runtime.util.EventMeshUtil;
 import org.apache.eventmesh.runtime.util.TraceUtils;
 import org.apache.eventmesh.trace.api.common.EventMeshTraceConstants;
@@ -38,6 +39,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -126,7 +128,7 @@ public class SessionPusher {
                     (ChannelFutureListener) future -> {
                         if (!future.isSuccess()) {
                             log.error("downstreamMsg fail,seq:{}, retryTimes:{}, event:{}", downStreamMsgContext.seq,
-                                downStreamMsgContext.retryTimes, downStreamMsgContext.event);
+                                downStreamMsgContext.getRetryTimes(), downStreamMsgContext.event);
                             deliverFailMsgsCount.incrementAndGet();
 
                             //how long to isolate client when push fail
@@ -139,12 +141,12 @@ public class SessionPusher {
                             long delayTime = SubscriptionType.SYNC == downStreamMsgContext.getSubscriptionItem().getType()
                                 ? session.getEventMeshTCPConfiguration().getEventMeshTcpMsgRetrySyncDelayInMills()
                                 : session.getEventMeshTCPConfiguration().getEventMeshTcpMsgRetryAsyncDelayInMills();
-                            downStreamMsgContext.delay(delayTime);
-                            Objects.requireNonNull(session.getClientGroupWrapper().get()).getEventMeshTcpRetryer().pushRetry(downStreamMsgContext);
+                            Objects.requireNonNull(session.getClientGroupWrapper().get()).getRetryTaskManager().pushRetry(downStreamMsgContext
+                                .withWaitStrategy(WaitStrategies.fixedWait(delayTime, TimeUnit.MILLISECONDS)));
                         } else {
                             deliveredMsgsCount.incrementAndGet();
                             log.info("downstreamMsg success,seq:{}, retryTimes:{}, bizSeq:{}", downStreamMsgContext.seq,
-                                downStreamMsgContext.retryTimes, EventMeshUtil.getMessageBizSeq(downStreamMsgContext.event));
+                                downStreamMsgContext.getRetryTimes(), EventMeshUtil.getMessageBizSeq(downStreamMsgContext.event));
 
                             if (session.isIsolated()) {
                                 log.info("cancel isolated,client:{}", session.getClient());

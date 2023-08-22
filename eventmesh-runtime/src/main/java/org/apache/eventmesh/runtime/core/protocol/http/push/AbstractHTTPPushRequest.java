@@ -20,9 +20,11 @@ package org.apache.eventmesh.runtime.core.protocol.http.push;
 import org.apache.eventmesh.runtime.boot.EventMeshHTTPServer;
 import org.apache.eventmesh.runtime.configuration.EventMeshHTTPConfiguration;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
 import org.apache.eventmesh.runtime.core.protocol.http.consumer.HandleMsgContext;
-import org.apache.eventmesh.runtime.core.protocol.http.retry.HttpRetryer;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.RetryTaskManager;
+import org.apache.eventmesh.runtime.core.retry.StopStrategies;
+import org.apache.eventmesh.runtime.core.retry.WaitStrategies;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.Lists;
@@ -51,7 +54,7 @@ public abstract class AbstractHTTPPushRequest extends RetryContext {
 
     public final EventMeshHTTPConfiguration eventMeshHttpConfiguration;
 
-    public final HttpRetryer retryer;
+    public final RetryTaskManager retryer;
 
     public final int ttl;
 
@@ -65,7 +68,7 @@ public abstract class AbstractHTTPPushRequest extends RetryContext {
         this.urls = handleMsgContext.getConsumeTopicConfig().getIdcUrls();
         this.totalUrls = Lists.newArrayList(handleMsgContext.getConsumeTopicConfig().getUrls());
         this.eventMeshHttpConfiguration = handleMsgContext.getEventMeshHTTPServer().getEventMeshHttpConfiguration();
-        this.retryer = handleMsgContext.getEventMeshHTTPServer().getHttpRetryer();
+        this.retryer = handleMsgContext.getEventMeshHTTPServer().getRetryTaskManager();
         this.ttl = handleMsgContext.getTtl();
         this.startIdx = ThreadLocalRandom.current().nextInt(0, totalUrls.size());
     }
@@ -74,30 +77,20 @@ public abstract class AbstractHTTPPushRequest extends RetryContext {
     }
 
     public void delayRetry(long delayTime) {
-        if (retryTimes < EventMeshConstants.DEFAULT_PUSH_RETRY_TIMES && delayTime > 0) {
-            retryTimes++;
-            delay(delayTime);
-            retryer.pushRetry(this);
-        } else {
-            complete.compareAndSet(Boolean.FALSE, Boolean.TRUE);
-        }
+        retryer.pushRetry(this.withWaitStrategy(WaitStrategies.fixedWait(delayTime,
+                TimeUnit.MILLISECONDS))
+            .withStopStrategy(StopStrategies.stopAfterAttempt(EventMeshConstants.DEFAULT_PUSH_RETRY_TIMES)));
     }
 
     public void delayRetry() {
-        if (retryTimes < EventMeshConstants.DEFAULT_PUSH_RETRY_TIMES) {
-            retryTimes++;
-            delay((long) retryTimes * EventMeshConstants.DEFAULT_PUSH_RETRY_TIME_DISTANCE_IN_MILLSECONDS);
-            retryer.pushRetry(this);
-        } else {
-            complete.compareAndSet(Boolean.FALSE, Boolean.TRUE);
-        }
+        delayRetry(EventMeshConstants.DEFAULT_PUSH_RETRY_TIME_DISTANCE_IN_MILLSECONDS);
     }
 
     public String getUrl() {
         List<String> localIDCUrl = MapUtils.getObject(urls,
             eventMeshHttpConfiguration.getEventMeshIDC(), null);
         if (CollectionUtils.isNotEmpty(localIDCUrl)) {
-            return localIDCUrl.get((startIdx + retryTimes) % localIDCUrl.size());
+            return localIDCUrl.get((startIdx + getRetryTimes()) % localIDCUrl.size());
         }
 
         List<String> otherIDCUrl = new ArrayList<String>();
@@ -106,7 +99,7 @@ public abstract class AbstractHTTPPushRequest extends RetryContext {
         }
 
         if (CollectionUtils.isNotEmpty(otherIDCUrl)) {
-            return otherIDCUrl.get((startIdx + retryTimes) % otherIDCUrl.size());
+            return otherIDCUrl.get((startIdx + getRetryTimes()) % otherIDCUrl.size());
         }
 
         return null;

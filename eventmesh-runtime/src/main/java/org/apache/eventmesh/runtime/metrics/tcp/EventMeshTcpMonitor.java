@@ -129,10 +129,9 @@ public class EventMeshTcpMonitor {
 
         monitorThreadPoolTask = eventMeshTCPServer.getScheduler().scheduleAtFixedRate(() -> {
             eventMeshTCPServer.getEventMeshRebalanceService().printRebalanceThreadPoolState();
-            eventMeshTCPServer.getEventMeshTcpRetryer().printRetryThreadPoolState();
 
             //monitor retry queue size
-            tcpSummaryMetrics.setRetrySize(eventMeshTCPServer.getEventMeshTcpRetryer().getRetrySize());
+            tcpSummaryMetrics.setRetrySize(eventMeshTCPServer.getRetryTaskManager().getRetrySize());
             appLogger.info(
                 MonitorMetricConstants.EVENTMESH_MONITOR_FORMAT_COMMON,
                 EventMeshConstants.PROTOCOL_TCP,

@@ -22,8 +22,8 @@ import org.apache.eventmesh.common.protocol.SubscriptionItem;
 import org.apache.eventmesh.common.protocol.SubscriptionMode;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
 import org.apache.eventmesh.runtime.core.plugin.MQConsumerWrapper;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.Session;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
 import org.apache.eventmesh.runtime.util.EventMeshUtil;
 import org.apache.eventmesh.runtime.util.ServerGlobal;
 
@@ -105,7 +105,7 @@ public class DownStreamMsgContext extends RetryContext {
             +
             ",client=" + (session == null ? null : session.getClient())
             +
-            ",retryTimes=" + retryTimes
+            ",retryTimes=" + getRetryTimes()
             +
             ",consumer=" + consumer
             +
@@ -125,13 +125,12 @@ public class DownStreamMsgContext extends RetryContext {
     @Override
     public void retry() {
         try {
-            log.info("retry downStream msg start,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.retryTimes,
+            log.info("retry downStream msg start,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.getRetryTimes(),
                 EventMeshUtil.getMessageBizSeq(this.event));
 
             if (isRetryMsgTimeout(this)) {
                 return;
             }
-            this.retryTimes++;
             this.lastPushTime = System.currentTimeMillis();
 
             Session rechoosen;
@@ -146,11 +145,11 @@ public class DownStreamMsgContext extends RetryContext {
 
             if (rechoosen == null) {
                 log.warn("retry, found no session to downstream msg,seq:{}, retryTimes:{}, bizSeq:{}", this.seq,
-                    this.retryTimes, EventMeshUtil.getMessageBizSeq(this.event));
+                    this.getRetryTimes(), EventMeshUtil.getMessageBizSeq(this.event));
             } else {
                 this.session = rechoosen;
                 rechoosen.downstreamMsg(this);
-                log.info("retry downStream msg end,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.retryTimes,
+                log.info("retry downStream msg end,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.getRetryTimes(),
                     EventMeshUtil.getMessageBizSeq(this.event));
             }
         } catch (Exception e) {
@@ -175,7 +174,7 @@ public class DownStreamMsgContext extends RetryContext {
         double elapseTime = brokerCost + accessCost;
         if (elapseTime >= ttl) {
             log.warn("discard the retry because timeout, seq:{}, retryTimes:{}, bizSeq:{}", downStreamMsgContext.seq,
-                downStreamMsgContext.retryTimes, EventMeshUtil.getMessageBizSeq(downStreamMsgContext.event));
+                downStreamMsgContext.getRetryTimes(), EventMeshUtil.getMessageBizSeq(downStreamMsgContext.event));
             flag = true;
             eventMeshAckMsg(downStreamMsgContext);
         }

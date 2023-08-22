@@ -52,8 +52,8 @@ public class EventMeshTCPConfigurationTest {
         Assert.assertEquals(8816, config.getEventMeshTcpMsgDownStreamExecutorPoolSize());
         Assert.assertEquals(1816, config.getEventMeshTcpSessionExpiredInMills());
         Assert.assertEquals(11816, config.getEventMeshTcpSessionUpstreamBufferSize());
-        Assert.assertEquals(12816, config.getEventMeshTcpMsgAsyncRetryTimes());
-        Assert.assertEquals(13816, config.getEventMeshTcpMsgSyncRetryTimes());
+        Assert.assertEquals(12816, config.getEventMeshMsgAsyncRetryTimes());
+        Assert.assertEquals(13816, config.getEventMeshMsgSyncRetryTimes());
         Assert.assertEquals(14816, config.getEventMeshTcpMsgRetrySyncDelayInMills());
         Assert.assertEquals(15816, config.getEventMeshTcpMsgRetryAsyncDelayInMills());
         Assert.assertEquals(16816, config.getEventMeshTcpMsgRetryQueueSize());

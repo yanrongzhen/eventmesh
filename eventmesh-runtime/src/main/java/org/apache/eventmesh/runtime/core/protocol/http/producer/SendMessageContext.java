@@ -22,7 +22,7 @@ import org.apache.eventmesh.api.SendResult;
 import org.apache.eventmesh.api.exception.OnExceptionContext;
 import org.apache.eventmesh.common.Constants;
 import org.apache.eventmesh.runtime.boot.EventMeshHTTPServer;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
 
 import org.apache.commons.lang3.time.DateFormatUtils;
 
@@ -34,6 +34,8 @@ import io.cloudevents.CloudEvent;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.eventmesh.runtime.core.retry.StopStrategies;
+import org.apache.eventmesh.runtime.core.retry.StopStrategy;
 
 @Slf4j
 public class SendMessageContext extends RetryContext {
@@ -111,11 +113,16 @@ public class SendMessageContext extends RetryContext {
     }
 
     @Override
+    public StopStrategy getStopStrategy() {
+        return StopStrategies.stopAfterAttempt(1);
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("sendMessageContext={")
             .append("bizSeqNo=").append(bizSeqNo)
-            .append(",retryTimes=").append(retryTimes)
+            .append(",retryTimes=").append(getRetryTimes())
             .append(",producer=").append(eventMeshProducer != null ? eventMeshProducer.producerGroupConfig.getGroupName() : null)
             .append(",executeTime=").append(DateFormatUtils.format(executeTime, Constants.DATE_FORMAT_INCLUDE_MILLISECONDS))
             .append(",createTime=").append(DateFormatUtils.format(createTime, Constants.DATE_FORMAT_INCLUDE_MILLISECONDS)).append("}");
@@ -128,13 +135,6 @@ public class SendMessageContext extends RetryContext {
             log.error("Exception happends during retry. EventMeshProduceer is null.");
             return;
         }
-
-        if (retryTimes > 0) { //retry once
-            log.error("Exception happends during retry. The retryTimes > 0.");
-            return;
-        }
-
-        retryTimes++;
         eventMeshProducer.send(this, new SendCallback() {
 
             @Override

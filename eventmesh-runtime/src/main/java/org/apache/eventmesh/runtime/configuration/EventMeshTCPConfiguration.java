@@ -70,12 +70,6 @@ public class EventMeshTCPConfiguration extends CommonConfiguration {
     @ConfigFiled(field = "session.upstreamBufferSize")
     private int eventMeshTcpSessionUpstreamBufferSize = 100;
 
-    @ConfigFiled(field = "retry.async.pushRetryTimes")
-    private int eventMeshTcpMsgAsyncRetryTimes = 3;
-
-    @ConfigFiled(field = "retry.sync.pushRetryTimes")
-    private int eventMeshTcpMsgSyncRetryTimes = 1;
-
     @ConfigFiled(field = "retry.sync.pushRetryDelayInMills")
     private int eventMeshTcpMsgRetrySyncDelayInMills = 500;
 

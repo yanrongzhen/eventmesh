@@ -115,7 +115,7 @@ public class StreamPushRequest extends AbstractPushRequest {
     private List<EventEmitter<CloudEvent>> getEventEmitters(List<EventEmitter<CloudEvent>> emitterList) {
         switch (subscriptionMode) {
             case CLUSTERING:
-                return Collections.singletonList(emitterList.get((startIdx + retryTimes) % emitterList.size()));
+                return Collections.singletonList(emitterList.get((startIdx + getRetryTimes()) % emitterList.size()));
             case BROADCASTING:
                 return emitterList;
             default:

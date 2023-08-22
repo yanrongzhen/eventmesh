@@ -18,6 +18,8 @@
 package org.apache.eventmesh.runtime.boot;
 
 import org.apache.eventmesh.common.EventMeshThreadFactory;
+import org.apache.eventmesh.common.config.CommonConfiguration;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.utils.SystemUtils;
 import org.apache.eventmesh.common.utils.ThreadUtils;
 
@@ -28,7 +30,6 @@ import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
-
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,6 +47,10 @@ public abstract class AbstractRemotingServer {
     private int port;
 
     private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
+
+    public abstract CommonConfiguration getConfiguration();
+
+    public abstract ProtocolType getProtocolType();
 
     public EventLoopGroup getBossGroup() {
         return bossGroup;

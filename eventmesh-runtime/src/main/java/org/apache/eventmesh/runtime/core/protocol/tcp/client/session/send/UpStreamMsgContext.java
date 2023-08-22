@@ -25,7 +25,7 @@ import org.apache.eventmesh.common.protocol.tcp.Header;
 import org.apache.eventmesh.common.protocol.tcp.OPStatus;
 import org.apache.eventmesh.common.protocol.tcp.Package;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
 import org.apache.eventmesh.runtime.core.protocol.tcp.client.session.Session;
 import org.apache.eventmesh.runtime.util.EventMeshUtil;
 import org.apache.eventmesh.runtime.util.Utils;
@@ -79,21 +79,19 @@ public class UpStreamMsgContext extends RetryContext {
         return "UpStreamMsgContext{seq=" + seq
             + ",topic=" + event.getSubject()
             + ",client=" + session.getClient()
-            + ",retryTimes=" + retryTimes
+            + ",retryTimes=" + getRetryTimes()
             + ",createTime=" + DateFormatUtils.format(createTime, EventMeshConstants.DATE_FORMAT) + "}"
             + ",executeTime=" + DateFormatUtils.format(executeTime, EventMeshConstants.DATE_FORMAT);
     }
 
     @Override
     public void retry() {
-        log.info("retry upStream msg start,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.retryTimes,
+        log.info("retry upStream msg start,seq:{},retryTimes:{},bizSeq:{}", this.seq, this.getRetryTimes(),
             EventMeshUtil.getMessageBizSeq(this.event));
 
         try {
             Command replyCmd = getReplyCmd(header.getCmd());
             long sendTime = System.currentTimeMillis();
-
-            retryTimes++;
 
             // check session availability
             if (session.isRunning()) {
@@ -136,8 +134,7 @@ public class UpStreamMsgContext extends RetryContext {
 
                 // retry
                 // reset delay time
-                retryContext.delay(10000);
-                Objects.requireNonNull(session.getClientGroupWrapper().get()).getEventMeshTcpRetryer().pushRetry(retryContext);
+                Objects.requireNonNull(session.getClientGroupWrapper().get()).getRetryTaskManager().pushRetry(retryContext);
 
                 session.getSender().getFailMsgCount().incrementAndGet();
                 log.error("upstreamMsg mq message error|user={}|callback cost={}, errMsg={}", session.getClient(),

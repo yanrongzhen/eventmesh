@@ -19,6 +19,7 @@ package org.apache.eventmesh.runtime.boot;
 
 import org.apache.eventmesh.common.Constants;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.protocol.http.HttpCommand;
 import org.apache.eventmesh.common.protocol.http.HttpEventWrapper;
 import org.apache.eventmesh.common.protocol.http.body.Body;
@@ -173,6 +174,11 @@ public abstract class AbstractHTTPServer extends AbstractRemotingServer {
 
     public HandlerService getHandlerService() {
         return handlerService;
+    }
+
+    @Override
+    public ProtocolType getProtocolType() {
+        return ProtocolType.HTTP;
     }
 
     public void sendError(final ChannelHandlerContext ctx, final HttpResponseStatus status) {

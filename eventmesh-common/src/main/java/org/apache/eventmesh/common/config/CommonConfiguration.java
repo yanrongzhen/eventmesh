@@ -107,6 +107,18 @@ public class CommonConfiguration {
     private List<String> eventMeshProvideServerProtocols;
 
 
+    @ConfigFiled(field = "retry.threads.num")
+    private int eventMeshServerRetryThreadNum = 2;
+
+    @ConfigFiled(field = "retry.blockQ.size")
+    private int eventMeshServerRetryBlockQueueSize = 10000;
+
+    @ConfigFiled(field = "retry.async.pushRetryTimes")
+    private int eventMeshMsgAsyncRetryTimes = 3;
+
+    @ConfigFiled(field = "retry.sync.pushRetryTimes")
+    private int eventMeshMsgSyncRetryTimes = 1;
+
     @ConfigFiled(reload = true)
     private String eventMeshWebhookOrigin;
 

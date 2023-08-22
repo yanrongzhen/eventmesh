@@ -306,7 +306,7 @@ public class SendAsyncRemoteEventProcessor implements AsyncHttpProcessor {
                     responseBodyMap.put(EventMeshConstants.RET_CODE, EventMeshRetCode.EVENTMESH_SEND_ASYNC_MSG_ERR.getRetCode());
                     responseBodyMap.put(EventMeshConstants.RET_MSG, EventMeshRetCode.EVENTMESH_SEND_ASYNC_MSG_ERR.getErrMsg()
                         + EventMeshUtil.stackTrace(context.getException(), 2));
-                    eventMeshHTTPServer.getHttpRetryer().pushRetry(sendMessageContext.delay(10_000));
+                    eventMeshHTTPServer.getRetryTaskManager().pushRetry(sendMessageContext);
                     handlerSpecific.getTraceOperation().exceptionLatestTrace(context.getException(),
                         EventMeshUtil.getCloudEventExtensionMap(SpecVersion.V1.toString(), sendMessageContext.getEvent()));
 
@@ -319,7 +319,7 @@ public class SendAsyncRemoteEventProcessor implements AsyncHttpProcessor {
                 }
             });
         } catch (Exception ex) {
-            eventMeshHTTPServer.getHttpRetryer().pushRetry(sendMessageContext.delay(10_000));
+            eventMeshHTTPServer.getRetryTaskManager().pushRetry(sendMessageContext);
             handlerSpecific.sendErrorResponse(EventMeshRetCode.EVENTMESH_SEND_ASYNC_MSG_ERR, responseHeaderMap,
                 responseBodyMap, null);
 

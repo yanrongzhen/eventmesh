@@ -281,7 +281,7 @@ public class AsyncHTTPPushRequest extends AbstractHTTPPushRequest {
         sb.append("asyncPushRequest={")
             .append("bizSeqNo=").append(handleMsgContext.getBizSeqNo())
             .append(",startIdx=").append(startIdx)
-            .append(",retryTimes=").append(retryTimes)
+            .append(",retryTimes=").append(getRetryTimes())
             .append(",uniqueId=").append(handleMsgContext.getUniqueId())
             .append(",executeTime=")
             .append(DateFormatUtils.format(executeTime, Constants.DATE_FORMAT_INCLUDE_MILLISECONDS))

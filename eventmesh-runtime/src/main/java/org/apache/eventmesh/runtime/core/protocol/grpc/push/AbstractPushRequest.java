@@ -29,15 +29,17 @@ import org.apache.eventmesh.protocol.api.ProtocolPluginFactory;
 import org.apache.eventmesh.runtime.boot.EventMeshGrpcServer;
 import org.apache.eventmesh.runtime.configuration.EventMeshGrpcConfiguration;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
-import org.apache.eventmesh.runtime.core.protocol.RetryContext;
 import org.apache.eventmesh.runtime.core.protocol.grpc.consumer.EventMeshConsumer;
-import org.apache.eventmesh.runtime.core.protocol.grpc.retry.GrpcRetryer;
+import org.apache.eventmesh.runtime.core.retry.RetryContext;
+import org.apache.eventmesh.runtime.core.retry.RetryTaskManager;
+import org.apache.eventmesh.runtime.core.retry.StopStrategies;
+import org.apache.eventmesh.runtime.core.retry.WaitStrategies;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Sets;
 
@@ -52,15 +54,13 @@ public abstract class AbstractPushRequest extends RetryContext {
 
     protected EventMeshConsumer eventMeshConsumer;
     protected EventMeshGrpcConfiguration eventMeshGrpcConfiguration;
-    protected GrpcRetryer grpcRetryer;
+    protected RetryTaskManager retryTaskManager;
 
     protected Map<String, Set<AbstractPushRequest>> waitingRequests;
 
     protected HandleMsgContext handleMsgContext;
     //  protected CloudEvent event;
     protected CloudEvent eventMeshCloudEvent;
-
-    private final AtomicBoolean complete = new AtomicBoolean(Boolean.FALSE);
 
     public AbstractPushRequest(HandleMsgContext handleMsgContext, Map<String, Set<AbstractPushRequest>> waitingRequests) {
         this.eventMeshGrpcServer = handleMsgContext.getEventMeshGrpcServer();
@@ -69,7 +69,7 @@ public abstract class AbstractPushRequest extends RetryContext {
 
         this.eventMeshConsumer = handleMsgContext.getEventMeshConsumer();
         this.eventMeshGrpcConfiguration = handleMsgContext.getEventMeshGrpcServer().getEventMeshGrpcConfiguration();
-        this.grpcRetryer = handleMsgContext.getEventMeshGrpcServer().getGrpcRetryer();
+        this.retryTaskManager = handleMsgContext.getEventMeshGrpcServer().getRetryTaskManager();
         io.cloudevents.CloudEvent event = handleMsgContext.getEvent();
         this.eventMeshCloudEvent = getEventMeshCloudEvent(event);
     }
@@ -105,17 +105,13 @@ public abstract class AbstractPushRequest extends RetryContext {
     }
 
     protected void delayRetry() {
-        if (retryTimes < EventMeshConstants.DEFAULT_PUSH_RETRY_TIMES) {
-            retryTimes++;
-            delay((long) retryTimes * EventMeshConstants.DEFAULT_PUSH_RETRY_TIME_DISTANCE_IN_MILLSECONDS);
-            grpcRetryer.pushRetry(this);
-        } else {
-            complete();
+        retryTaskManager.pushRetry(
+            this.withStopStrategy(StopStrategies.stopAfterAttempt(EventMeshConstants.DEFAULT_PUSH_RETRY_TIMES))
+                .withWaitStrategy(WaitStrategies.fixedWait(EventMeshConstants.DEFAULT_PUSH_RETRY_TIME_DISTANCE_IN_MILLSECONDS,
+                    TimeUnit.MILLISECONDS)));
+        if (isComplete()) {
+            finish();
         }
-    }
-
-    protected boolean isComplete() {
-        return complete.get();
     }
 
     private void finish() {
@@ -129,11 +125,6 @@ public abstract class AbstractPushRequest extends RetryContext {
                 log.error("Error in updating offset in EventMeshConsumer", e);
             }
         }
-    }
-
-    protected void complete() {
-        complete.compareAndSet(Boolean.FALSE, Boolean.TRUE);
-        finish();
     }
 
     protected void timeout() {

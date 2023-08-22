@@ -20,6 +20,8 @@ package org.apache.eventmesh.runtime.boot;
 import org.apache.eventmesh.api.registry.dto.EventMeshRegisterInfo;
 import org.apache.eventmesh.api.registry.dto.EventMeshUnRegisterInfo;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.config.CommonConfiguration;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.exception.EventMeshException;
 import org.apache.eventmesh.common.utils.ConfigurationContextUtil;
 import org.apache.eventmesh.common.utils.IPUtils;
@@ -30,10 +32,10 @@ import org.apache.eventmesh.runtime.configuration.EventMeshGrpcConfiguration;
 import org.apache.eventmesh.runtime.constants.EventMeshConstants;
 import org.apache.eventmesh.runtime.core.protocol.grpc.consumer.ConsumerManager;
 import org.apache.eventmesh.runtime.core.protocol.grpc.producer.ProducerManager;
-import org.apache.eventmesh.runtime.core.protocol.grpc.retry.GrpcRetryer;
 import org.apache.eventmesh.runtime.core.protocol.grpc.service.ConsumerService;
 import org.apache.eventmesh.runtime.core.protocol.grpc.service.HeartbeatService;
 import org.apache.eventmesh.runtime.core.protocol.grpc.service.PublisherService;
+import org.apache.eventmesh.runtime.core.retry.RetryTaskManager;
 import org.apache.eventmesh.runtime.metrics.grpc.EventMeshGrpcMonitor;
 import org.apache.eventmesh.runtime.registry.Registry;
 
@@ -59,7 +61,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class EventMeshGrpcServer {
+public class EventMeshGrpcServer extends AbstractRemotingServer {
 
     private final EventMeshGrpcConfiguration eventMeshGrpcConfiguration;
 
@@ -73,7 +75,7 @@ public class EventMeshGrpcServer {
 
     private ConsumerManager consumerManager;
 
-    private GrpcRetryer grpcRetryer;
+    private RetryTaskManager retryTaskManager;
 
     private ThreadPoolExecutor sendMsgExecutor;
 
@@ -117,8 +119,8 @@ public class EventMeshGrpcServer {
         consumerManager = new ConsumerManager(this);
         consumerManager.init();
 
-        grpcRetryer = new GrpcRetryer(this);
-        grpcRetryer.init();
+        retryTaskManager = new RetryTaskManager(this);
+        retryTaskManager.init();
 
         int serverPort = eventMeshGrpcConfiguration.getGrpcServerPort();
 
@@ -139,7 +141,7 @@ public class EventMeshGrpcServer {
 
         producerManager.start();
         consumerManager.start();
-        grpcRetryer.start();
+        retryTaskManager.start();
         server.start();
 
         if (eventMeshGrpcConfiguration.isEventMeshServerRegistryEnable()) {
@@ -150,12 +152,22 @@ public class EventMeshGrpcServer {
         log.info("---------------EventMeshGRPCServer running-------------------");
     }
 
+    @Override
+    public CommonConfiguration getConfiguration() {
+        return eventMeshGrpcConfiguration;
+    }
+
+    @Override
+    public ProtocolType getProtocolType() {
+        return ProtocolType.GRPC;
+    }
+
     public void shutdown() throws Exception {
         log.info("---------------EventMeshGRPCServer stopping-------------------");
 
         producerManager.shutdown();
         consumerManager.shutdown();
-        grpcRetryer.shutdown();
+        retryTaskManager.shutdown();
 
         shutdownThreadPools();
         shutdownHttpClientPool();
@@ -215,8 +227,8 @@ public class EventMeshGrpcServer {
         return consumerManager;
     }
 
-    public GrpcRetryer getGrpcRetryer() {
-        return grpcRetryer;
+    public RetryTaskManager getRetryTaskManager() {
+        return retryTaskManager;
     }
 
     public ThreadPoolExecutor getSendMsgExecutor() {

@@ -20,6 +20,7 @@ package org.apache.eventmesh.runtime.boot;
 import org.apache.eventmesh.api.registry.dto.EventMeshRegisterInfo;
 import org.apache.eventmesh.api.registry.dto.EventMeshUnRegisterInfo;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.config.CommonConfiguration;
 import org.apache.eventmesh.common.exception.EventMeshException;
 import org.apache.eventmesh.common.protocol.http.common.RequestCode;
 import org.apache.eventmesh.common.utils.ConfigurationContextUtil;
@@ -53,7 +54,7 @@ import org.apache.eventmesh.runtime.core.protocol.http.processor.UnSubscribeProc
 import org.apache.eventmesh.runtime.core.protocol.http.processor.WebHookProcessor;
 import org.apache.eventmesh.runtime.core.protocol.http.producer.ProducerManager;
 import org.apache.eventmesh.runtime.core.protocol.http.push.HTTPClientPool;
-import org.apache.eventmesh.runtime.core.protocol.http.retry.HttpRetryer;
+import org.apache.eventmesh.runtime.core.retry.RetryTaskManager;
 import org.apache.eventmesh.runtime.metrics.http.HTTPMetricsServer;
 import org.apache.eventmesh.runtime.registry.Registry;
 import org.apache.eventmesh.webhook.receive.WebHookController;
@@ -92,7 +93,7 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
 
     private ProducerManager producerManager;
 
-    private HttpRetryer httpRetryer;
+    private RetryTaskManager retryTaskManager;
 
     private ThreadPoolExecutor batchMsgExecutor;
 
@@ -213,8 +214,8 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
                 metricsPlugins -> metricsPlugins.forEach(
                     pluginType -> metricsRegistries.add(MetricsPluginFactory.getMetricsRegistry(pluginType))));
 
-        httpRetryer = new HttpRetryer(this);
-        httpRetryer.init();
+        retryTaskManager = new RetryTaskManager(this);
+        retryTaskManager.init();
 
         this.setMetrics(new HTTPMetricsServer(this, metricsRegistries));
 
@@ -252,13 +253,18 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
         this.getMetrics().start();
         consumerManager.start();
         producerManager.start();
-        httpRetryer.start();
+        retryTaskManager.start();
         if (eventMeshHttpConfiguration.isEventMeshServerRegistryEnable()) {
             this.register();
         }
         if (log.isInfoEnabled()) {
             log.info("==================EventMeshHTTPServer started==================");
         }
+    }
+
+    @Override
+    public CommonConfiguration getConfiguration() {
+        return eventMeshHttpConfiguration;
     }
 
     @Override
@@ -276,7 +282,7 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
 
         producerManager.shutdown();
 
-        httpRetryer.shutdown();
+        retryTaskManager.shutdown();
 
         if (eventMeshHttpConfiguration.isEventMeshServerRegistryEnable()) {
             this.unRegister();
@@ -411,8 +417,8 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
         return eventBus;
     }
 
-    public HttpRetryer getHttpRetryer() {
-        return httpRetryer;
+    public RetryTaskManager getRetryTaskManager() {
+        return retryTaskManager;
     }
 
     public Acl getAcl() {

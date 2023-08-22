@@ -256,7 +256,7 @@ public class BatchSendMessageProcessor implements HttpRequestProcessor {
                     @Override
                     public void onException(OnExceptionContext context) {
                         batchMessageLogger.warn("", context.getException());
-                        eventMeshHTTPServer.getHttpRetryer().pushRetry(sendMessageContext.delay(10000));
+                        eventMeshHTTPServer.getRetryTaskManager().pushRetry(sendMessageContext);
                     }
 
                 });
@@ -273,7 +273,7 @@ public class BatchSendMessageProcessor implements HttpRequestProcessor {
                     @Override
                     public void onException(OnExceptionContext context) {
                         batchMessageLogger.warn("", context.getException());
-                        eventMeshHTTPServer.getHttpRetryer().pushRetry(sendMessageContext.delay(10000));
+                        eventMeshHTTPServer.getRetryTaskManager().pushRetry(sendMessageContext);
                     }
 
                 });
