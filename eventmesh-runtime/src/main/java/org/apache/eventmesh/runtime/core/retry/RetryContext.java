@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.eventmesh.runtime.core.protocol;
+package org.apache.eventmesh.runtime.core.retry;
 
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import io.cloudevents.CloudEvent;
+import org.apache.eventmesh.runtime.core.protocol.DelayRetryable;
 
 public abstract class RetryContext implements DelayRetryable {
 
