@@ -22,7 +22,13 @@ import java.util.concurrent.Delayed;
 /**
  * Retry
  */
-public interface DelayRetryable extends Delayed {
+public interface Retryable extends Delayed {
 
     void retry() throws Exception;
+
+    WaitStrategy getWaitStrategy();
+
+    StopStrategy getStopStrategy();
+
+    Attempt<Void> getAttempt();
 }
