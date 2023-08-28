@@ -18,6 +18,7 @@
 package org.apache.eventmesh.runtime.boot;
 
 import org.apache.eventmesh.common.EventMeshThreadFactory;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.utils.SystemUtils;
 import org.apache.eventmesh.common.utils.ThreadUtils;
 
@@ -46,6 +47,8 @@ public abstract class AbstractRemotingServer {
     private int port;
 
     private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
+
+    public abstract ProtocolType getProtocolType();
 
     public EventLoopGroup getBossGroup() {
         return bossGroup;

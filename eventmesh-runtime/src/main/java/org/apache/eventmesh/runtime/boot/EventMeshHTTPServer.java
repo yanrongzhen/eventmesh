@@ -20,6 +20,7 @@ package org.apache.eventmesh.runtime.boot;
 import org.apache.eventmesh.api.registry.dto.EventMeshRegisterInfo;
 import org.apache.eventmesh.api.registry.dto.EventMeshUnRegisterInfo;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.exception.EventMeshException;
 import org.apache.eventmesh.common.protocol.http.common.RequestCode;
 import org.apache.eventmesh.common.utils.ConfigurationContextUtil;
@@ -259,6 +260,11 @@ public class EventMeshHTTPServer extends AbstractHTTPServer {
         if (log.isInfoEnabled()) {
             log.info("==================EventMeshHTTPServer started==================");
         }
+    }
+
+    @Override
+    public ProtocolType getProtocolType() {
+        return ProtocolType.HTTP;
     }
 
     @Override

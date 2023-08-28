@@ -21,6 +21,7 @@ import org.apache.eventmesh.api.registry.dto.EventMeshRegisterInfo;
 import org.apache.eventmesh.api.registry.dto.EventMeshUnRegisterInfo;
 import org.apache.eventmesh.common.EventMeshThreadFactory;
 import org.apache.eventmesh.common.ThreadPoolFactory;
+import org.apache.eventmesh.common.enums.ProtocolType;
 import org.apache.eventmesh.common.exception.EventMeshException;
 import org.apache.eventmesh.common.protocol.tcp.codec.Codec;
 import org.apache.eventmesh.common.utils.ConfigurationContextUtil;
@@ -262,6 +263,11 @@ public class EventMeshTCPServer extends AbstractRemotingServer {
         if (log.isInfoEnabled()) {
             log.info("--------------------------EventMeshTCPServer Started");
         }
+    }
+
+    @Override
+    public ProtocolType getProtocolType() {
+        return ProtocolType.TCP;
     }
 
     @Override
